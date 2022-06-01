@@ -2,7 +2,7 @@ import numpy as np
 import time
 
 # ========================================= 参数 ========================================= #
-data_size = 1000
+data_size = 20
 author_num = 1000
 type_num = 30
 bgm_num = 100
@@ -14,7 +14,7 @@ author_limit = 2
 type_limit = 3
 bgm_limit = 1
 
-np.random.seed(12345)
+np.random.seed(123)
 
 # ========================================= 随机生成数据 ========================================= #
 def generate_data(data_size, author_num, type_num, bgm_num):
@@ -26,17 +26,17 @@ def generate_data(data_size, author_num, type_num, bgm_num):
     data = np.concatenate((f_id, f_author, f_type, f_bgm), axis=1)
     return data
 
-# ========================================= 窗口打散 ========================================= #
-# 循环，每次窗口右沿移动一格，纳入一个新元素（在r右移之前，先判断窗口长度是否已经是window_size，是的话就l++
-# 每个特征用一个哈希表来计数
-# 移动时，根据条件找到可以纳入的元素，如果能找到的话，就插入排序到r的位置
+# ========================================= 窗口打散算法 ========================================= #
+"""
+方法1：
+滑动窗口，每次向右移动一格，纳入一个新item；
+用三个哈希表来动态维护窗口内的三个特征出现情况，用于检查规则；
+如果新item不满足规则，就一直向右找，直到找到第一个满足规则限制的item，然后将其插入到当前位置；
+如果直到列表结尾都无法找到满足规则限制的item，就记录失败的规则，继续滑动窗口。
+本算法尽可能维护推荐顺序，比较符合推荐的需求，时间复杂度最坏情况下O(n^2)
+"""
 
-# TODO 失败未必是不能做到，可能只是当前解法无法做到，如果换一个解可能是可以做到的
-# 如果，失败了就循环呢？从第一个开始找，循环找，这样可以保障有解一定能找到吗？——不行，最开始的是最推荐的，不能随便颠倒顺序和后边的换。。
-# 这种naive方法虽然容易后期失败，但是尽可能保障开头打散+有序，其实更符合推荐的需求
-# 后期如果会失败的话，可以考虑增加容忍度，舍弃一点后期质量来保障排序。还是直接返回半成品呢？
-
-def breakup(data, author_num, type_num, bgm_num):
+def scatter_naive(data, author_num, type_num, bgm_num):
     l = 0
     r = 0
     author_cnt = [0 for i in range(author_num)]
@@ -49,7 +49,7 @@ def breakup(data, author_num, type_num, bgm_num):
     def check(p):
         if author_cnt[data[p][1]] < author_limit and type_cnt[data[p][2]] < type_limit and bgm_cnt[data[p][3]] < bgm_limit: return True
         return False
-    
+
     while r < data_size:
         if r - l + 1 > window_size:
             author_cnt[data[l][1]] -= 1
@@ -75,22 +75,56 @@ def breakup(data, author_num, type_num, bgm_num):
         r += 1
     return data, author_fail_num, type_fail_num, bgm_fail_num
 
+"""
+方法2：
+dfs暴搜，成功率高，但指数级别时间复杂度，不能应付召回列表过长的情况
+"""
+
+def scatter_dfs(data, author_num, type_num, bgm_num):
+    author_cnt = [0 for i in range(author_num)]
+    type_cnt = [0 for i in range(type_num)]
+    bgm_cnt = [0 for i in range(bgm_num)]
+    order = [0 for i in range(data_size)]
+    vis = [0 for i in range(data_size)]
+    flag = False
+
+    def check(p):
+        if author_cnt[data[p][1]] < author_limit and type_cnt[data[p][2]] < type_limit and bgm_cnt[data[p][3]] < bgm_limit: return True
+        return False
+
+    def dfs(u):
+        if u == data_size:
+            return True
+        if u - window_size >= 0:
+            l = order[u - window_size]
+            author_cnt[data[l][1]] -= 1
+            type_cnt[data[l][2]] -= 1
+            bgm_cnt[data[l][3]] -= 1
+        for i in range(data_size):
+            if not vis[i] and check(i):
+                order[u] = i
+                vis[i] = 1
+                author_cnt[data[i][1]] += 1
+                type_cnt[data[i][2]] += 1
+                bgm_cnt[data[i][3]] += 1
+                if(dfs(u + 1)):
+                    return True
+                vis[i] = 0
+                author_cnt[data[i][1]] -= 1
+                type_cnt[data[i][2]] -= 1
+                bgm_cnt[data[i][3]] -= 1
+        return False
+
+    if dfs(0):
+        data = data[order, :]
+        flag = True
+    
+    return data, flag
+
+
 # ========================================= 实验 ========================================= #
-# 单个列表
-"""
-data = generate_data(data_size, author_num, type_num, bgm_num)
-print(data)
-
-data = breakup(data, author_num, type_num, bgm_num)
-
-if data is not None:
-    print("succeed")
-    print(data)
-else:
-    print("fail")
-"""
-
-# 多个列表
+# 方法1
+print("=========== scatter_naive ===========")
 start = time.time()
 all_succeed_times = 0
 author_succeed_times = 0
@@ -98,7 +132,7 @@ type_succeed_times = 0
 bgm_succeed_times = 0
 for t in range(experiment_times):
     data = generate_data(data_size, author_num, type_num, bgm_num)
-    data, author_fail_num, type_fail_num, bgm_fail_num = breakup(data, author_num, type_num, bgm_num)
+    data, author_fail_num, type_fail_num, bgm_fail_num = scatter_naive(data, author_num, type_num, bgm_num)
     if author_fail_num + type_fail_num + bgm_fail_num == 0: all_succeed_times += 1
     if author_fail_num == 0: author_succeed_times += 1
     if type_fail_num == 0: type_succeed_times += 1
@@ -110,3 +144,18 @@ print("all_succeed_ratio: %.4f" % (all_succeed_times / experiment_times))
 print("author_succeed_ratio: %.4f" % (author_succeed_times / experiment_times))
 print("type_succeed_ratio: %.4f" % (type_succeed_times / experiment_times))
 print("bgm_succeed_ratio: %.4f" % (bgm_succeed_times / experiment_times))
+
+
+# 方法2
+print("=========== scatter_dfs ===========")
+start = time.time()
+all_succeed_times = 0
+for t in range(experiment_times):
+    #print(t)
+    data = generate_data(data_size, author_num, type_num, bgm_num)
+    data, flag = scatter_dfs(data, author_num, type_num, bgm_num)
+    if flag: all_succeed_times += 1
+end = time.time()
+
+print("code execution time: %.4f" % (end - start))
+print("all_succeed_ratio: %.4f" % (all_succeed_times / experiment_times))
