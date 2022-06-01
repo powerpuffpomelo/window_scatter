@@ -1,6 +1,7 @@
 # 窗口打散算法实验报告
 
 ## 算法思路
+实现代码见 [window_scatter.py](https://github.com/powerpuffpomelo/window_scatter/blob/master/window_scatter.py)
 ### 方法一：naive
 - 滑动窗口，每次向右移动一格，纳入一个新item；
 - 用三个哈希表来动态维护窗口内的三个特征出现情况，用于检查规则；
@@ -13,4 +14,4 @@
 &nbsp;
 
 ## 实验结果
-![image]()
+![image](https://github.com/powerpuffpomelo/window_scatter/blob/master/img/result2.png)
