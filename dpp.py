@@ -2,15 +2,7 @@ import numpy as np
 import math
 import time
 
-
 def dpp(kernel_matrix, ret_length, epsilon=1E-10):
-    """
-    Our proposed fast implementation of the greedy algorithm
-    :param kernel_matrix: 2-d array
-    :param ret_length: positive int
-    :param epsilon: small positive scalar
-    :return: list
-    """
     item_size = kernel_matrix.shape[0]
     cis = np.zeros((ret_length, item_size))
     di2s = np.copy(np.diag(kernel_matrix))
