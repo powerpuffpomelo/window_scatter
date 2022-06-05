@@ -1,6 +1,6 @@
-# 窗口打散算法实验报告
+# 实验报告
 
-## 算法思路
+## 第二讲作业
 实现代码见 [window_scatter.py](https://github.com/powerpuffpomelo/window_scatter/blob/master/window_scatter.py)
 ### 方法一：naive
 - 滑动窗口，每次向右移动一格，纳入一个新item；
@@ -11,7 +11,9 @@
 ### 方法二：dfs
 - 暴搜，每一步依次选择可以选的item，如果最后失败，就修改之前的选择
 
-&nbsp;
 
-## 实验结果
+### 实验结果
 ![image](https://github.com/powerpuffpomelo/window_scatter/blob/master/img/result2.png)
+
+## 第四讲作业
+dpp算法代码 [dpp.py](https://github.com/powerpuffpomelo/window_scatter/blob/master/dpp.py)
